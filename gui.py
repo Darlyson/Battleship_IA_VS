@@ -9,6 +9,7 @@ class VisualizadorBatalha:
         self.master.configure(bg="#2C3E50")
         
         self.simulacao = simulacao
+        # Roda o backend e guarda a lista de ataques para animação
         self.log_jogadas = simulacao.pre_calcular_batalha()
         self.passo_atual = 0
 
@@ -16,6 +17,7 @@ class VisualizadorBatalha:
         self.navios_ativos_alpha = list(self.navios_iniciais)
         self.navios_ativos_beta = list(self.navios_iniciais)
 
+        # Montagem dos widgets de controle
         self.frame_top = tk.Frame(master, bg="#2C3E50")
         self.frame_top.pack(pady=10)
         
@@ -39,17 +41,20 @@ class VisualizadorBatalha:
         self.frame_boards = tk.Frame(master, bg="#2C3E50")
         self.frame_boards.pack(pady=5)
 
+        nome_ia1 = self.simulacao.jogador1.nome
+        nome_ia2 = self.simulacao.jogador2.nome
+
         # ==========================================================
         # PAINEL DA IA ALPHA (Esquerda)
         # ==========================================================
-        self.container_ia1 = tk.LabelFrame(self.frame_boards, text=f" {simulacao.jogador1.nome} ", 
+        self.container_ia1 = tk.LabelFrame(self.frame_boards, text=f" {nome_ia1} ", 
                                             font=("Arial", 13, "bold"), bg="#2C3E50", fg="#3498DB", bd=3, relief="groove")
         self.container_ia1.grid(row=0, column=0, padx=15, ipadx=10, ipady=5)
         
         self.lbl_stats_ia1 = tk.Label(self.container_ia1, text="Pontos: [Revelado ao Fim]", font=("Arial", 11, "bold"), bg="#2C3E50", fg="#F1C40F")
         self.lbl_stats_ia1.pack(pady=2)
 
-        self.lbl_frota_ia1 = tk.Label(self.container_ia1, text=f"Navios em Jogo: {self.navios_ativos_alpha}", font=("Arial", 10), bg="#2C3E50", fg="#ECF0F1")
+        self.lbl_frota_ia1 = tk.Label(self.container_ia1, text=f"Em jogo: {self.navios_ativos_alpha} | Afundados: []", font=("Arial", 10), bg="#2C3E50", fg="#ECF0F1")
         self.lbl_frota_ia1.pack(pady=2)
 
         sub_ia1 = tk.Frame(self.container_ia1, bg="#2C3E50")
@@ -65,18 +70,17 @@ class VisualizadorBatalha:
         tk.Label(f_radar1, text="[ RADAR DE ATAQUE ]", font=("Arial", 10, "bold"), bg="#2C3E50", fg="white").pack()
         self.botoes_radar_ia1 = self.criar_grelha(f_radar1, {}, revelar_navios=False)
 
-
         # ==========================================================
         # PAINEL DA IA BETA (Direita)
         # ==========================================================
-        self.container_ia2 = tk.LabelFrame(self.frame_boards, text=f" {simulacao.jogador2.nome} ", 
+        self.container_ia2 = tk.LabelFrame(self.frame_boards, text=f" {nome_ia2} ", 
                                             font=("Arial", 13, "bold"), bg="#2C3E50", fg="#E74C3C", bd=3, relief="groove")
         self.container_ia2.grid(row=0, column=1, padx=15, ipadx=10, ipady=5)
         
         self.lbl_stats_ia2 = tk.Label(self.container_ia2, text="Pontos: [Revelado ao Fim]", font=("Arial", 11, "bold"), bg="#2C3E50", fg="#F1C40F")
         self.lbl_stats_ia2.pack(pady=2)
 
-        self.lbl_frota_ia2 = tk.Label(self.container_ia2, text=f"Navios em Jogo: {self.navios_ativos_beta}", font=("Arial", 10), bg="#2C3E50", fg="#ECF0F1")
+        self.lbl_frota_ia2 = tk.Label(self.container_ia2, text=f"Em jogo: {self.navios_ativos_beta} | Afundados: []", font=("Arial", 10), bg="#2C3E50", fg="#ECF0F1")
         self.lbl_frota_ia2.pack(pady=2)
 
         sub_ia2 = tk.Frame(self.container_ia2, bg="#2C3E50")
@@ -96,6 +100,7 @@ class VisualizadorBatalha:
         self.iniciar_contagem()
 
     def criar_grelha(self, container, mapa_pontos_iniciais, revelar_navios):
+        """Gera matriz 10x10 de botões do Tkinter para visualização."""
         frame_grelha = tk.Frame(container, bg="#34495E", bd=2, relief="solid")
         frame_grelha.pack(pady=5)
         botoes = []
@@ -103,7 +108,6 @@ class VisualizadorBatalha:
             linha_btn = []
             for coluna in range(10):
                 tem_navio = (linha, coluna) in mapa_pontos_iniciais
-                
                 if revelar_navios and tem_navio:
                     texto_btn = "🚢"
                     cor_fundo = "#F1C40F" 
@@ -120,6 +124,7 @@ class VisualizadorBatalha:
         return botoes
 
     def iniciar_contagem(self):
+        """Dá ao usuário 5 segundos para observar as posições dos navios."""
         if self.tempo_restante > 0:
             self.lbl_status.config(text=f"Memorize as frotas em 'Sua Frota'! Escondendo em {self.tempo_restante}s...")
             self.tempo_restante -= 1
@@ -128,6 +133,7 @@ class VisualizadorBatalha:
             self.esconder_frotas()
 
     def esconder_frotas(self):
+        # Esconde os barcos com CSS (fundo azul)
         for l in range(10):
             for c in range(10):
                 self.botoes_frota_ia1[l][c].configure(text="🟦", bg="#2980B9")
@@ -138,15 +144,20 @@ class VisualizadorBatalha:
         self.btn_resultado.config(state="normal")
 
     def processar_passo(self, ataque):
+        """Atualiza a UI baseado no objeto 'Ataque' retornado pela simulação."""
         atacante = ataque.atacante
         linha = ataque.coordenada.linha
         coluna = ataque.coordenada.coluna
         resultado = ataque.resultado
         
-        if self.simulacao.jogador1.nome in atacante:
+        nome_ia1 = self.simulacao.jogador1.nome
+        
+        # Identifica quem atacou quem para animar o tabuleiro certo
+        if nome_ia1 in atacante:
             btn_radar_atacante = self.botoes_radar_ia1[linha][coluna]
             btn_frota_alvo = self.botoes_frota_ia2[linha][coluna]
             
+            # IA Alpha pinta sua matriz probabilística visual no Radar
             if ataque.matriz_probabilidade:
                 for r in range(10):
                     for c in range(10):
@@ -158,6 +169,7 @@ class VisualizadorBatalha:
             btn_radar_atacante = self.botoes_radar_ia2[linha][coluna]
             btn_frota_alvo = self.botoes_frota_ia1[linha][coluna]
 
+        # Pinta Fogo ou Água
         if resultado == 'N':
             btn_radar_atacante.configure(text="💥", bg="#E74C3C", disabledforeground="white") 
             btn_frota_alvo.configure(text="💥", bg="#E74C3C", disabledforeground="white") 
@@ -165,21 +177,39 @@ class VisualizadorBatalha:
             btn_radar_atacante.configure(text="💦", bg="#7F8C8D", disabledforeground="white") 
             btn_frota_alvo.configure(text="💦", bg="#7F8C8D", disabledforeground="white") 
 
-        for k, vida in self.simulacao.vida_navios_ia2.items():
-            if vida == 0:
-                tamanho = self.simulacao.tamanho_original_ia2[k]
-                if tamanho in self.navios_ativos_beta:
-                    self.navios_ativos_beta.remove(tamanho)
+        # =========================================================
+        # RECONSTRUÇÃO DAS LISTAS (CORREÇÃO DE BUG ANTERIOR)
+        # Recria as listas do zero baseando-se na vida de cada ID de navio.
+        # Garante que navios de mesmo tamanho (ex: dois cruzadores de tam 3) não se sobrescrevam.
+        # =========================================================
+        ativos_alpha = []
         for k, vida in self.simulacao.vida_navios_ia1.items():
-            if vida == 0:
-                tamanho = self.simulacao.tamanho_original_ia1[k]
-                if tamanho in self.navios_ativos_alpha:
-                    self.navios_ativos_alpha.remove(tamanho)
+            if vida > 0:
+                ativos_alpha.append(self.simulacao.tamanho_original_ia1[k])
+                
+        ativos_beta = []
+        for k, vida in self.simulacao.vida_navios_ia2.items():
+            if vida > 0:
+                ativos_beta.append(self.simulacao.tamanho_original_ia2[k])
+                
+        ativos_alpha.sort(reverse=True)
+        ativos_beta.sort(reverse=True)
+        
+        afund_alpha = self.navios_iniciais.copy()
+        for n in ativos_alpha:
+            if n in afund_alpha:
+                afund_alpha.remove(n)
+                
+        afund_beta = self.navios_iniciais.copy()
+        for n in ativos_beta:
+            if n in afund_beta:
+                afund_beta.remove(n)
 
-        self.lbl_frota_ia1.config(text=f"Em jogo: {self.navios_ativos_alpha} | Afundados: {[n for n in self.navios_iniciais if n not in self.navios_ativos_alpha]}")
-        self.lbl_frota_ia2.config(text=f"Em jogo: {self.navios_ativos_beta} | Afundados: {[n for n in self.navios_iniciais if n not in self.navios_ativos_beta]}")
+        self.lbl_frota_ia1.config(text=f"Em jogo: {ativos_alpha} | Afundados: {afund_alpha}")
+        self.lbl_frota_ia2.config(text=f"Em jogo: {ativos_beta} | Afundados: {afund_beta}")
 
     def avancar_animacao(self):
+        """Passa a lista de jogadas turno a turno ao clicar no botão."""
         if self.passo_atual < len(self.log_jogadas):
             ataque = self.log_jogadas[self.passo_atual]
             self.processar_passo(ataque)
@@ -190,18 +220,20 @@ class VisualizadorBatalha:
             
             self.passo_atual += 1
             
+            # Se for o último passo, finaliza a partida
             if self.passo_atual == len(self.log_jogadas):
                 self.anunciar_vencedor()
 
     def ir_para_resultado(self):
+        """Loop imediato pulando toda a animação visual para o resultado final."""
         while self.passo_atual < len(self.log_jogadas):
             ataque = self.log_jogadas[self.passo_atual]
             self.processar_passo(ataque)
             self.passo_atual += 1
-            
         self.anunciar_vencedor()
 
     def anunciar_vencedor(self):
+        """Calcula e exibe a pontuação final na tela."""
         self.btn_avancar.config(state="disabled")
         self.btn_resultado.config(state="disabled")
         
@@ -211,10 +243,13 @@ class VisualizadorBatalha:
         self.lbl_stats_ia1.config(text=f"Pontos Finais: {p_alpha}")
         self.lbl_stats_ia2.config(text=f"Pontos Finais: {p_beta}")
         
+        nome_ia1 = self.simulacao.jogador1.nome
+        nome_ia2 = self.simulacao.jogador2.nome
+        
         vencedor = "EMPATE!"
         if p_alpha > p_beta:
-            vencedor = f"🏆 {self.simulacao.jogador1.nome} Venceu!"
+            vencedor = f"🏆 {nome_ia1} Venceu!"
         elif p_beta > p_alpha:
-            vencedor = f"🏆 {self.simulacao.jogador2.nome} Venceu!"
+            vencedor = f"🏆 {nome_ia2} Venceu!"
             
         self.lbl_status.config(text=f"FIM DE JOGO: {vencedor} (Alpha: {p_alpha} pts | Beta: {p_beta} pts)", fg="#2ECC71", font=("Arial", 13, "bold"))

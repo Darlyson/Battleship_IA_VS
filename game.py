@@ -7,11 +7,13 @@ class SimuladorBatalha:
         self.jogador2 = jogador2
         self.modo = modo
 
+        # Mapeamento para controle de pontos e identificação única de navios
         self.mapa_pontos_ia1 = {}
         self.mapa_pontos_ia2 = {}
         self.mapa_id_navio_ia1 = {}
         self.mapa_id_navio_ia2 = {}
         
+        # Controle de HP (Vida) dos navios
         self.vida_navios_ia1 = {}
         self.vida_navios_ia2 = {}
         self.tamanho_original_ia1 = {}
@@ -20,6 +22,7 @@ class SimuladorBatalha:
         self.log_jogadas = []
 
     def posicionar_navios(self):
+        """Delega a geração da frota aos agentes e as posiciona nos respectivos tabuleiros."""
         tamanhos_padrao = [5, 4, 3, 3, 2]
 
         # Posiciona frota do Jogador 1 (Alpha)
@@ -30,8 +33,6 @@ class SimuladorBatalha:
             
             self.vida_navios_ia1[id_navio] = tamanho
             self.tamanho_original_ia1[id_navio] = tamanho
-            
-            # Delega para a classe Tabuleiro
             self.jogador1.tabuleiro.marcar_navio(coords)
             
             for l, c in coords:
@@ -47,8 +48,6 @@ class SimuladorBatalha:
             
             self.vida_navios_ia2[id_navio] = tamanho
             self.tamanho_original_ia2[id_navio] = tamanho
-            
-            # Delega para a classe Tabuleiro
             self.jogador2.tabuleiro.marcar_navio(coords)
             
             for l, c in coords:
@@ -59,29 +58,44 @@ class SimuladorBatalha:
         return len(self.mapa_pontos_ia1), len(self.mapa_pontos_ia2)
 
     def calcular_pontuacao_final(self, id_jogador):
+        """
+        Cálculo exato de pontos (Especial para o Modo Profissional):
+        - Navio afundado: (Valor Base * (Tamanho + 1))
+        - Navio Não afundado: Soma das peças atingidas
+        Total máximo possível: 800 pontos.
+        """
         pontos_totais = 0
         vida_navios = self.vida_navios_ia2 if id_jogador == 1 else self.vida_navios_ia1
         tamanho_original = self.tamanho_original_ia2 if id_jogador == 1 else self.tamanho_original_ia1
 
         for k, vida in vida_navios.items():
             tamanho = tamanho_original[k]
-            if vida == 0:
+            pecas_atingidas = tamanho - vida
+            
+            if vida == 0: 
+                # Bônus total de afundamento
                 valor_base = tamanho * 10
-                pecas_atingidas = tamanho
-                pontos_totais += ((valor_base * (tamanho + 1)) + pecas_atingidas)
+                pontos_totais += (valor_base * (tamanho + 1))
+            elif pecas_atingidas > 0:
+                # Pontuação parcial por peças atingidas
+                pontos_totais += pecas_atingidas
 
         return pontos_totais
 
     def pre_calcular_batalha(self):
+        """Simula o jogo inteiro no backend antes de passar para o GUI renderizar."""
         qtd_navios_ia1, qtd_navios_ia2 = self.posicionar_navios()
 
+        # Tiros limitados no modo profissional
         tiros_1 = qtd_navios_ia1 + 1 if self.modo == "profissional" else float('inf')
         tiros_2 = qtd_navios_ia2 + 1 if self.modo == "profissional" else float('inf')
 
+        # Total de blocos de navios no jogo
         acertos_restantes_1 = 17
         acertos_restantes_2 = 17
 
         while acertos_restantes_1 > 0 and acertos_restantes_2 > 0:
+            # Termina se a munição acabar em modo profissional
             if self.modo == "profissional" and tiros_1 <= 0 and tiros_2 <= 0:
                 break
 
@@ -89,15 +103,12 @@ class SimuladorBatalha:
             # TURNO JOGADOR 1 (ALPHA)
             # ==========================
             if acertos_restantes_2 > 0 and (self.modo != "profissional" or tiros_1 > 0):
-                # Alpha retorna tupla com a melhor jogada e a matriz de calor
                 jogada, matriz_alpha = self.jogador1.agente.escolher_ataque()
                 l1, c1 = jogada
 
-                # Ataca o Tabuleiro do oponente (Jogador 2)
                 resultado = self.jogador2.tabuleiro.atacar(l1, c1)
                 acertou = (resultado == 'N')
 
-                # Alimenta o radar do agente Alpha
                 self.jogador1.agente.registrar_resultado(l1, c1, acertou)
                 alvo_char = 'N' if acertou else '🟦'
 
@@ -126,17 +137,14 @@ class SimuladorBatalha:
             # TURNO JOGADOR 2 (BETA)
             # ==========================
             if acertos_restantes_1 > 0 and (self.modo != "profissional" or tiros_2 > 0):
-                # Evita atirar na mesma coordenada através do método ja_atacado do Tabuleiro
                 while True:
                     l2, c2 = self.jogador2.agente.escolher_ataque()
                     if not self.jogador1.tabuleiro.ja_atacado(l2, c2):
                         break
 
-                # Ataca o Tabuleiro do oponente (Jogador 1)
                 resultado = self.jogador1.tabuleiro.atacar(l2, c2)
                 acertou = (resultado == 'N')
 
-                # Alimenta o radar do agente Beta (Beta recebe a coordenada como tupla)
                 self.jogador2.agente.registrar_resultado((l2, c2), acertou)
                 alvo_char = 'N' if acertou else '🟦'
 

@@ -16,21 +16,22 @@ def iniciar_jogo():
     modo = "profissional" if escolha == "2" else "padrao"
 
     # ==========================================
-    # NOVA ARQUITETURA DE DEPENDÊNCIAS
-    # IA ➔ Agente ➔ Jogador ➔ Tabuleiro
+    # ARQUITETURA DE DEPENDÊNCIAS
+    # IA (Agente) injetada -> Jogador -> Tabuleiro associado automaticamente.
     # ==========================================
     
-    # 1. Instanciar os Agentes
+    # 1. Instanciar os Agentes Cognitivos
     agente_alpha = AgenteAlpha(profundidade=2)
     agente_beta = AgenteHeuristico()
     
-    # 2. Injetar os Agentes nos Jogadores (o Tabuleiro é gerado internamente)
+    # 2. Injetar os Agentes nos Jogadores Físicos
     jogador_alpha = Jogador("IA Alpha (Minimax)", agente_alpha)
     jogador_beta = Jogador("IA Beta (Heurística)", agente_beta)
 
-    # 3. Passar os Jogadores completos para o simulador
+    # 3. Passar os Jogadores completos para o motor de simulação de Batalha
     simulacao = SimuladorBatalha(jogador_alpha, jogador_beta, modo=modo)
 
+    # 4. Renderizar tudo no Motor Gráfico
     root = tk.Tk()
     app = VisualizadorBatalha(root, simulacao)
     root.mainloop()
