@@ -64,4 +64,10 @@ $ \text{Pontos} = (\text{Valor Base} \times (\text{Tamanho} + 1)) + \text{Peças
 **Passo a passo:**
 1. Clone este repositório:
    ```bash
-   git clone [https://github.com/SEU_USUARIO/SEU_REPOSITORIO.git](https://github.com/SEU_USUARIO/SEU_REPOSITORIO.git)
+   git clone https://github.com/Darlyson/Battleship_IA_VS
+2. Acesse a pasta do projeto:
+   ```bash
+   cd Battleship_IA_VS
+2. Execute o inicializador:
+  ```bash
+   py main.py
